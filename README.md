@@ -82,7 +82,7 @@ outputSolution(selectedNodeIndexes, G)
 
 ```
 ## Complexity
-The complexity of exon_exonChaining method is O(2n) = O(n) (linear).
+The complexity of exon_exonChaining method is O(2n) = O(n) (linear).  
 The complexity of outputting the solution is also linear.
 ## Results
 Find input/output results in input/output folders.
