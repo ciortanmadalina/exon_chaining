@@ -1,16 +1,16 @@
-print('test')
 from ast import literal_eval #this facilitates parsing input tuples
 
 class Node:
-    type: '';
-    index: 0;
-    pairIndex : 0;
-    weight : 0;
+    type: '';#this can be 'L' or 'R'
+    nodeValue: 0; #holds the value of the vertex (the index of the point)
+    pairValue : 0;# holds the index of the paired value, if Node is a right end point,
+    # pair value will be the corresponding left end point and inversly
+    weight : 0; #the given weight of the segment
 
-    def __init__(self, index, pairIndex, type, weight):
+    def __init__(self, nodeValue, pairValue, type, weight):
         self.type = type
-        self.pairIndex = pairIndex
-        self.index = index
+        self.pairValue = pairValue
+        self.nodeValue = nodeValue
         self.weight = weight
 
     def __repr__(self):
@@ -19,27 +19,27 @@ class Node:
         :return:
         '''
         if self.type == 'R':
-            return 'Right Node index : %s, left index : %s , weight : %s \n' %(self.index, self.pairIndex, self.weight)
+            return 'R value : %s, L value : %s , weight : %s \n' %(self.nodeValue, self.pairValue, self.weight)
         else:
-            return 'Left Node index : %s\n' % (self.index)
+            return 'L value: %s\n' % (self.nodeValue)
 
     def __lt__(self, other):
         '''
         Override compartor method in order to be able to stort left and right vertices
-        by index, prioritising right nodes when indexes are identical
+        by nodeValue, prioritising right nodes when nodeValuees are identical
         :param other:
         :return:
         '''
-        if self.index == other.index :
+        if self.nodeValue == other.nodeValue :
             return self.type == 'R'
         else:
-            return self.index < other.index
+            return self.nodeValue < other.nodeValue
 
     def prettyPrint(self):
         if self.type == 'R':
-            return "( %s, %s )  %s " % (self.pairIndex, self.index, self.weight)
+            return "( %s, %s )  %s " % (self.pairValue, self.nodeValue, self.weight)
         else:
-            return self.index
+            return self.nodeValue
 
 def getInputFromFile(filename):
     f = open(filename, 'r')
@@ -56,24 +56,24 @@ def getInputFromFile(filename):
 def segmentsToGraph(left, right, weights):
     '''
     Graph will have a structure like
-    [Left Node index : 1
-    , Left Node index : 2
-    , Right Node index : 3, left index : 2 , weight : 3
-    , Left Node index : 4
-    , Right Node index : 5, left index : 1 , weight : 5
-    , Left Node index : 6
-    , Left Node index : 7
-    , Right Node index : 8, left index : 4 , weight : 6
-    , Left Node index : 9
-    , Right Node index : 10, left index : 9 , weight : 1
-    , Left Node index : 11
-    , Right Node index : 12, left index : 6 , weight : 10
-    , Left Node index : 13
-    , Right Node index : 14, left index : 13 , weight : 0
-    , Right Node index : 15, left index : 11 , weight : 7
-    , Left Node index : 16
-    , Right Node index : 17, left index : 7 , weight : 12
-    , Right Node index : 18, left index : 16 , weight : 4
+    [L value: 1
+    , L value: 2
+    , R value : 3, L value : 2 , weight : 3
+    , L value: 4
+    , R value : 5, L value : 1 , weight : 5
+    , L value: 6
+    , L value: 7
+    , R value : 8, L value : 4 , weight : 6
+    , L value: 9
+    , R value : 10, L value : 9 , weight : 1
+    , L value: 11
+    , R value : 12, L value : 6 , weight : 10
+    , L value: 13
+    , R value : 14, L value : 13 , weight : 0
+    , R value : 15, L value : 11 , weight : 7
+    , L value: 16
+    , R value : 17, L value : 7 , weight : 12
+    , R value : 18, L value : 16 , weight : 4
     ]
     :param left:
     :param right:
@@ -87,69 +87,75 @@ def segmentsToGraph(left, right, weights):
     graph.extend([Node(right[i], left[i], 'R', weights[i]) for i in range(len(right))])
 
     graph.sort() # this will invoke __lt__
+
     return graph
 
 def indexWithValue(graph, value) :
     for i in range(len(graph)):
-        if graph[i].index == value:
+        if graph[i].nodeValue == value:
             return i
     return -1
 
 
 
 def exonChaining(graph):
-    #print ('graph : ' , graph)
     n = len(graph)
 
+    #this structure will keep the weights helping to decide whether to select current node or not
     s = [0 for i in range(n)]
-    selectedNodes = [-1 for i in range(n)]
+
+    #this structure will be explored in order to reconstruct selected nodes
+    selectedNodeIndexes = [-1 for i in range(n)] #initialize with -1 as no nodes are selected
     for i in range(1, n):
         if graph[i].type == 'R' :
-            leftIndex = indexWithValue(graph, graph[i].pairIndex )
+            leftIndex = indexWithValue(graph, graph[i].pairValue )
             if s[i - 1] < s[leftIndex] + graph[i].weight :
                 s[i] = s[leftIndex] + graph[i].weight
-                selectedNodes[i] = i
+                selectedNodeIndexes[i] = i
                 continue
         s[i] = s [i-1]
-        selectedNodes[i] = selectedNodes[i - 1]
+        selectedNodeIndexes[i] = selectedNodeIndexes[i - 1]
 
+    return selectedNodeIndexes
 
+def printSolution(selectedNodeIndexes, graph, fileName):
+    outputFile = open("output/" + fileName, 'w')
 
+    selNode = selectedNodeIndexes[-1] #iterate from the last selected node
+    #based on its length (nodeValue - pairValue) we visit only the points whose
+    #selection built the final solution
 
-    return selectedNodes
-
-def printSolution(selectedNodes, graph, fileName):
-    #outputFile = open("output/" + fileName, 'w')
-    print('graph', graph)
-    print('sel nodes', selectedNodes)
-    selNode = selectedNodes[-1]
     totalWeight = 0
     while True :
-        #outputFile.write(graph[selNode].prettyPrint())
+
+        #we explore as part of the solution only right edges, after substracting
+        #the legth of the segment it is possible to end up on a left node because
+        #an index can be both a left and a right edge. So if current node is a left
+        #edge, we find the neared right edge
         while graph[selNode].type == 'L':
-            print('adjust', selNode)
             selNode -= 1
-        if selNode <= -1:
+
+        if selNode <= -1: #stop when we reached no selection
             break
+
+        outputFile.write(str(graph[selNode].prettyPrint() + '\n'))
         print(graph[selNode].prettyPrint())
-        #print('sel node ', selNode,graph[selNode] )
+
         totalWeight += graph[selNode].weight
-        selNode = selNode - graph[selNode].index + graph[selNode].pairIndex
+        selNode = selNode - graph[selNode].nodeValue + graph[selNode].pairValue
 
     print('Total weight : %s' % totalWeight)
-    #outputFile.write('Total weight : %s' % totalWeight)
-    #outputFile.close()
+    outputFile.write('Total weight : %s' % totalWeight)
+    outputFile.close()
 
 #########################
 #RUN
 #########################
 
-#fileName = 'simple'
+# fileName = 'simple'
 fileName = 'example'
 left, right, weights = getInputFromFile("input/" + fileName)
 
-print('left : ', left)
-print('right : ', right)
 graph = segmentsToGraph(left, right, weights)
 sol = exonChaining(graph)
 printSolution(sol, graph, fileName)
