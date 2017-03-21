@@ -82,8 +82,8 @@ outputSolution(selectedNodeIndexes, G)
 
 ```
 ## Complexity
-The complexity of exon_exonChaining method is O(2n) = O(n) (linear).  
-The complexity of outputting the solution is also linear.  
-The complexity of sorting the nodes is the complexity of python's sort method which is O(n log n).
+The complexity of exonChaining method is O(2n) = O(n) (linear).  
+The complexity of outputSolution is also linear.  
+The complexity of sorting the nodes is the complexity of python's sort method = O(n log n).
 ## Results
 Find input/output results in input/output folders.
